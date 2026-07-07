@@ -1,0 +1,32 @@
+name: Build Headroom v2 for macOS
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Configure (universal binary - Apple silicon + Intel)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Ad-hoc code sign
+        run: codesign --force -s - "build/HeadroomV2_artefacts/Release/VST3/Headroom v2.vst3"
+
+      - name: Zip the bundle (preserves Mac permissions)
+        run: |
+          cd "build/HeadroomV2_artefacts/Release/VST3"
+          ditto -c -k --keepParent "Headroom v2.vst3" "Headroom-v2-macOS.zip"
+
+      - name: Upload the plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: Headroom-v2-macOS
+          path: build/HeadroomV2_artefacts/Release/VST3/Headroom-v2-macOS.zip
